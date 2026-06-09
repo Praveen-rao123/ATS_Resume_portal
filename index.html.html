@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<!--
+  ATS Resume Portal — Enterprise Scan
+  Copyright (c) Praveen Rao G. All rights reserved.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="author" content="Praveen Rao G">
+<meta name="copyright" content="© Praveen Rao G. All rights reserved.">
+<title>ATS Resume Portal — Enterprise Scan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a;--panel:#1e293b;--panel2:#273449;--line:#334155;
+    --text:#e2e8f0;--muted:#94a3b8;--accent:#6366f1;--accent2:#818cf8;
+    --good:#22c55e;--mid:#f59e0b;--bad:#ef4444;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.55}
+  header{padding:22px 28px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,#1e293b,#0f172a)}
+  header h1{margin:0;font-size:22px;display:flex;align-items:center;gap:10px}
+  header p{margin:5px 0 0;color:var(--muted);font-size:13px;max-width:760px}
+  .wrap{max-width:1120px;margin:0 auto;padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+  .card h2{margin:0 0 14px;font-size:15px;text-transform:uppercase;letter-spacing:.5px;color:var(--accent2)}
+  label{display:block;font-size:13px;color:var(--muted);margin:12px 0 5px}
+  input[type=text],textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:9px;color:var(--text);padding:10px 12px;font-size:14px;font-family:inherit}
+  textarea{resize:vertical;min-height:150px}
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent)}
+  .drop{margin-top:6px;border:2px dashed var(--line);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:.15s;color:var(--muted)}
+  .drop.drag{border-color:var(--accent);background:rgba(99,102,241,.08)}
+  .drop b{color:var(--accent2)}
+  .filename{margin-top:8px;font-size:13px;color:var(--good)}
+  .btn{margin-top:18px;width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-size:15px;font-weight:600;cursor:pointer;transition:.15s}
+  .btn:hover{background:var(--accent2)}
+  .btn.sec{background:transparent;border:1px solid var(--accent);color:var(--accent2)}
+  .full{grid-column:1 / -1}
+  .hidden{display:none}
+  .gauge{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+  .ring{--p:0;width:148px;height:148px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--rc) calc(var(--p)*1%),#334155 0)}
+  .ring .inner{width:114px;height:114px;border-radius:50%;background:var(--panel);display:grid;place-items:center;text-align:center}
+  .ring .inner b{font-size:32px}.ring .inner span{font-size:11px;color:var(--muted)}
+  .verdict{font-size:21px;font-weight:700;margin:0 0 4px}
+  .verdict.good{color:var(--good)}.verdict.mid{color:var(--mid)}.verdict.bad{color:var(--bad)}
+  .sub{color:var(--muted);font-size:14px;margin:0;max-width:520px}
+  .tag{display:inline-block;font-size:11px;background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:3px 9px;margin:6px 6px 0 0;color:var(--muted)}
+  /* category cards */
+  .cat{border:1px solid var(--line);border-radius:11px;margin-top:12px;overflow:hidden;background:var(--panel2)}
+  .cat-head{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;user-select:none}
+  .cat-head:hover{background:#2e3c52}
+  .dot{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+  .dot.pass{background:var(--good)}.dot.warn{background:var(--mid)}.dot.fail{background:var(--bad)}
+  .cat-title{flex:1;font-weight:600;font-size:14.5px}
+  .cat-score{font-size:13px;color:var(--muted);min-width:42px;text-align:right}
+  .cat-arrow{color:var(--muted);transition:.2s;font-size:12px}
+  .cat.open .cat-arrow{transform:rotate(90deg)}
+  .cat-body{display:none;padding:0 16px 16px;border-top:1px solid var(--line)}
+  .cat.open .cat-body{display:block}
+  .why{margin:12px 0 0;font-size:13.5px;color:var(--muted)}
+  .why b{color:var(--text)}
+  .fix{background:rgba(99,102,241,.1);border-left:3px solid var(--accent);border-radius:7px;padding:10px 13px;margin-top:10px;font-size:13.5px}
+  .fix b{color:var(--accent2)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+  .chip{font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--line)}
+  .chip.hit{background:rgba(34,197,94,.13);border-color:rgba(34,197,94,.4);color:#86efac}
+  .chip.miss{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.4);color:#fca5a5}
+  .muted{color:var(--muted);font-size:13px}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:16px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .summarybar{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+  .pill{font-size:12px;padding:5px 11px;border-radius:8px;font-weight:600}
+  .pill.pass{background:rgba(34,197,94,.15);color:#86efac}
+  .pill.warn{background:rgba(245,158,11,.15);color:#fcd34d}
+  .pill.fail{background:rgba(239,68,68,.15);color:#fca5a5}
+  h3.section{font-size:14px;color:var(--accent2);margin:22px 0 2px;text-transform:uppercase;letter-spacing:.5px}
+  @media(max-width:780px){.wrap{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏢 ATS Resume Portal — Enterprise Scan</h1>
+  <p>Simulates how large companies' Applicant Tracking Systems (Workday, Taleo, Greenhouse) screen a resume against a job description — scoring hard skills, job-title match, required experience, education, parseability and impact, with a clear <b>why</b> and <b>fix</b> for every gap.</p>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>1 · Candidate &amp; Role</h2>
+    <label>Candidate name</label>
+    <input type="text" id="name" placeholder="e.g. Praveen Kumar">
+    <label>Job role / title</label>
+    <input type="text" id="role" placeholder="e.g. Senior Data Engineer">
+    <label>Target company ATS (simulation profile)</label>
+    <select id="ats">
+      <option value="generic">Generic large enterprise</option>
+      <option value="workday">Workday (Amazon, Salesforce style)</option>
+      <option value="greenhouse">Greenhouse (tech / startups)</option>
+      <option value="taleo">Taleo / Oracle (strict keyword)</option>
+    </select>
+    <label>Resume file (PDF, DOCX or TXT)</label>
+    <div class="drop" id="drop">
+      <div>Drop your resume here or <b>click to browse</b></div>
+      <div class="muted">PDF · DOCX · TXT</div>
+      <div class="filename hidden" id="fname"></div>
+    </div>
+    <input type="file" id="file" accept=".pdf,.docx,.txt" class="hidden">
+  </div>
+
+  <div class="card">
+    <h2>2 · Job Description</h2>
+    <label>Paste the full job description</label>
+    <textarea id="jd" placeholder="Paste responsibilities, required skills, years of experience, qualifications…"></textarea>
+    <button class="btn" id="run">Run Enterprise ATS Scan</button>
+    <p class="muted" id="status" style="margin-top:10px"></p>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="card full hidden" id="results">
+    <h2>Scan Result</h2>
+    <div class="gauge">
+      <div class="ring" id="ring"><div class="inner"><b id="pct">0%</b><span>ATS score</span></div></div>
+      <div>
+        <p class="verdict" id="verdict"></p>
+        <p class="sub" id="verdictSub"></p>
+        <div><span class="tag" id="tagName"></span><span class="tag" id="tagRole"></span><span class="tag" id="tagAts"></span></div>
+        <div class="summarybar" id="summarybar"></div>
+      </div>
+    </div>
+
+    <h3 class="section">Detailed checks — click any row to see why &amp; how to fix</h3>
+    <div id="cats"></div>
+
+    <div class="legend">
+      <span><span class="dot pass"></span> Pass</span>
+      <span><span class="dot warn"></span> Needs work</span>
+      <span><span class="dot fail"></span> Failing the screen</span>
+    </div>
+
+    <button class="btn sec" id="modBtn" style="margin-top:22px">⚙️ Generate prioritized fix plan</button>
+  </div>
+
+  <div class="card full hidden" id="modify">
+    <h2>Your prioritized action plan</h2>
+    <p class="muted" id="modIntro"></p>
+    <div id="modBody"></div>
+  </div>
+</div>
+
+<footer style="text-align:center;padding:22px 16px 30px;color:var(--muted);font-size:12.5px;border-top:1px solid var(--line);margin-top:10px">
+  © <span id="cy"></span> Praveen Rao G · Embedded HW/SW Engineer &nbsp;·&nbsp; All rights reserved.
+</footer>
+
+<script>
+document.getElementById('cy').textContent=new Date().getFullYear();
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+let resumeText="";
+
+/* ---------------- file handling ---------------- */
+const fileInput=document.getElementById('file'),drop=document.getElementById('drop'),
+      fname=document.getElementById('fname'),status=document.getElementById('status');
+drop.onclick=()=>fileInput.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('drag')};
+drop.ondragleave=()=>drop.classList.remove('drag');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0])};
+fileInput.onchange=e=>{if(e.target.files[0])handleFile(e.target.files[0])};
+async function handleFile(f){
+  fname.textContent="Reading "+f.name+" …";fname.classList.remove('hidden');
+  try{
+    if(f.name.toLowerCase().endsWith('.pdf'))resumeText=await readPDF(f);
+    else if(f.name.toLowerCase().endsWith('.docx'))resumeText=await readDOCX(f);
+    else resumeText=await f.text();
+    fname.textContent="✓ "+f.name+"  ("+resumeText.split(/\s+/).length+" words)";
+  }catch(err){fname.textContent="⚠ Could not read file: "+err.message;resumeText="";}
+}
+async function readPDF(f){const buf=await f.arrayBuffer();const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+  let t="";for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);const c=await p.getTextContent();t+=c.items.map(x=>x.str).join(" ")+"\n";}return t;}
+async function readDOCX(f){const buf=await f.arrayBuffer();const r=await mammoth.extractRawText({arrayBuffer:buf});return r.value;}
+
+/* ---------------- text utils ---------------- */
+const STOP=new Set("a an the and or but of to in on for with at by from as is are was were be been being this that these those you your we our they their it its will would should could can may must have has had do does did not no than then so if us about into over under more most other such using use used able strong work works working experience experiences years year team teams role roles ability across within including include includes etc per via both each any all new high low good great excellent required require requirements responsibilities responsible qualifications qualification preferred plus must-have nice candidate candidates job position company looking seeking join help build building develop developing skills skill knowledge understanding ".split(/\s+/));
+function tokens(s){return (s.toLowerCase().match(/[a-z][a-z0-9+#.\-]{1,}/g)||[]).map(w=>w.replace(/^[.\-]+|[.\-]+$/g,'')).filter(w=>w.length>1);}
+function escapeRx(s){return s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}
+function has(term,rt){const t=term.toLowerCase();
+  if(t.includes(' ')){if(rt.includes(t))return true;return t.split(' ').every(w=>new RegExp("\\b"+escapeRx(w)).test(rt));}
+  return new RegExp("\\b"+escapeRx(t)+"\\b").test(rt);}
+
+function jdKeywords(jd){
+  const toks=tokens(jd).filter(w=>!STOP.has(w)&&w.length>2);const freq={};
+  toks.forEach(w=>freq[w]=(freq[w]||0)+1);
+  for(let i=0;i<toks.length-1;i++){const bg=toks[i]+" "+toks[i+1];freq[bg]=(freq[bg]||0)+1.4;}
+  let arr=Object.entries(freq).filter(([k,v])=>(k.includes(' ')?v>=2.8:v>=2)||(!k.includes(' ')&&v>=1));
+  arr.sort((a,b)=>b[1]-a[1]);
+  const bigrams=arr.filter(([k])=>k.includes(' ')).map(([k])=>k);
+  const seen=new Set();const out=[];
+  for(const [k,v] of arr){if(out.length>=30)break;
+    if(!k.includes(' ')){if(bigrams.some(b=>b.split(' ').includes(k)))continue;}
+    if(seen.has(k))continue;seen.add(k);out.push({term:k,weight:v});}
+  return out;
+}
+
+/* ---------------- ATS profiles: category weights ---------------- */
+const PROFILES={
+  generic:{skills:30,title:14,years:12,education:10,contact:8,sections:8,impact:10,verbs:4,parse:4},
+  workday:{skills:32,title:16,years:14,education:8,contact:8,sections:7,impact:8,verbs:3,parse:4},
+  greenhouse:{skills:34,title:12,years:8,education:6,contact:8,sections:8,impact:14,verbs:6,parse:4},
+  taleo:{skills:40,title:18,years:12,education:10,contact:6,sections:6,impact:4,verbs:2,parse:2}
+};
+
+/* ---------------- detectors ---------------- */
+function reqYears(jd){
+  // range first: "3 - 8 years", "3 to 8 yrs", "between 3 and 8 years"
+  let m=jd.match(/(?:between\s+)?(\d{1,2})\s*(?:-|–|—|to|and)\s*(\d{1,2})\s*\+?\s*(?:years|yrs|year)/i);
+  if(m){let a=parseInt(m[1]),b=parseInt(m[2]);if(a>b){const t=a;a=b;b=t;}return {min:a,max:b};}
+  // explicit minimum: "minimum 5 years", "at least 5 years", "5+ years"
+  m=jd.match(/(?:minimum|at least|min\.?)\s*(?:of\s*)?(\d{1,2})\s*\+?\s*(?:years|yrs|year)/i);
+  if(m)return {min:parseInt(m[1]),max:null};
+  m=jd.match(/(\d{1,2})\s*\+\s*(?:years|yrs|year)/i);
+  if(m)return {min:parseInt(m[1]),max:null};
+  // plain single value
+  m=jd.match(/(\d{1,2})\s*(?:years|yrs|year)/i);
+  if(m)return {min:parseInt(m[1]),max:null};
+  return null;
+}
+function resumeYears(rt){
+  const now=new Date().getFullYear();
+  // PRIORITY 1: trust an explicitly stated figure on the resume.
+  // Matches "2+ years", "3 years of experience", "5 yrs of hands-on experience", "2+ years experience".
+  let m = rt.match(/(\d{1,2})\s*\+\s*(?:years|yrs|year)/i)                                                   // "2+ years"
+       || rt.match(/(\d{1,2})\s*(?:years|yrs|year)s?\s*(?:\+)?\s*(?:of\s+)?(?:hands[\s-]?on\s+)?(?:experience|exp|professional|work|industry|relevant)/i); // "3 years of experience"
+  if(m) return parseInt(m[1]);
+  // PRIORITY 2: any explicit "X years" / "X yrs" mention (take the largest plausible value)
+  let explicit=0;
+  [...rt.matchAll(/(\d{1,2})\s*\+?\s*(?:years|yrs|year)\b/gi)].forEach(x=>{const n=parseInt(x[1]);if(n<=45)explicit=Math.max(explicit,n);});
+  if(explicit>0) return explicit;
+  // PRIORITY 3 (fallback only): infer from WORK date ranges, skipping ranges that sit next to education context.
+  let sum=0;
+  const re=/((?:19|20)\d{2})\s*(?:-|–|—|to|until|through)\s*(?:[a-z.]{3,12}\s*'?\s*)?((?:19|20)\d{2}|present|current|ongoing|now|today|date)/gi;
+  let mm;
+  while((mm=re.exec(rt))){
+    const ctx=rt.slice(Math.max(0,mm.index-70), mm.index+mm[0].length); // look BEHIND only (degree/school keyword precedes the dates)
+    if(/\b(education|b\.?tech|b\.?e\b|b\.?sc|bachelor|master|m\.?tech|m\.?sc|university|college|degree|cgpa|gpa|school|diploma|institute|academ)\b/i.test(ctx)) continue; // skip education-context ranges
+    const a=parseInt(mm[1]); const b=/^\d/.test(mm[2])?parseInt(mm[2]):now;
+    if(a>=1980&&b<=now&&b>=a) sum+=(b-a);
+  }
+  return sum;
+}
+function jdDegree(jd){return /\b(bachelor|master|mba|ph\.?d|b\.?tech|b\.?e\b|b\.?sc|m\.?sc|m\.?tech|degree|graduate)\b/i.test(jd);}
+function resumeDegree(rt){return /\b(bachelor|master|mba|ph\.?d|b\.?tech|b\.?e\b|b\.?sc|m\.?sc|m\.?tech|associate|diploma|university|college|degree)\b/i.test(rt);}
+const SECTIONS=[["Experience",/\b(experience|work history|employment|professional background)\b/i],
+  ["Education",/\b(education|academic)\b/i],
+  ["Skills",/\b(skills|technical skills|competenc|technologies)\b/i],
+  ["Summary",/\b(summary|objective|profile|about)\b/i]];
+function quantCount(rt){return (rt.match(/(\$\s?\d[\d,.]*|\d+\s?%|\b\d+\s?(?:k|m|bn|million|billion|users|customers|clients|projects|people|hours|days|countries|engineers|members|x)\b|\bby\s+\d+|\b\d{2,}\+)/gi)||[]).length;}
+const VERBS=["led","built","designed","developed","managed","created","implemented","improved","increased","reduced","launched","delivered","architected","optimized","automated","drove","spearheaded","established","engineered","achieved","streamlined","migrated","scaled","mentored","owned","analyzed","deployed"];
+function verbCount(rt){return VERBS.filter(v=>new RegExp("\\b"+v+"\\b").test(rt)).length;}
+function hasEmail(rt){return /[\w.+-]+@[\w-]+\.[\w.-]+/.test(rt);}
+function hasPhone(t){return /(\+?\d[\d\-\s().]{7,}\d)/.test(t);}
+function hasLinkedIn(rt){return /linkedin\.com\/|linkedin\b/i.test(rt);}
+
+/* ---------------- main analysis ---------------- */
+document.getElementById('run').onclick=analyze;
+function analyze(){
+  const name=val('name'),role=val('role'),jd=val('jd'),profile=document.getElementById('ats').value;
+  if(!resumeText.trim()){status.textContent="⚠ Please upload a resume first.";return;}
+  if(!jd.trim()){status.textContent="⚠ Please paste the job description.";return;}
+  status.textContent="";
+  const rt=resumeText.toLowerCase(),raw=resumeText,W=PROFILES[profile];
+  const cats=[];
+
+  /* 1. Hard skills / keywords */
+  const kws=jdKeywords(jd);const hits=[],miss=[];let g=0,t=0;
+  kws.forEach(k=>{t+=k.weight;if(has(k.term,rt)){g+=k.weight;hits.push(k.term);}else miss.push(k.term);});
+  const skillPct=t?Math.round(g/t*100):0;
+  cats.push({key:'skills',title:'Hard skills & keyword match',pct:skillPct,
+    why:`The ATS extracted <b>${kws.length}</b> key terms from the job description. Your resume contains <b>${hits.length}</b> of them. Recruiters filter on these — a resume below ~70% coverage is often auto-ranked low and never reaches a human.`,
+    fix:miss.length?`Add the missing terms below (only where they're true for you) into your Skills section and work them into experience bullets. Use the exact wording from the JD — the parser matches strings, not synonyms.`:`Excellent coverage. Keep the exact phrasing the JD uses.`,
+    chips:{hit:hits,miss:miss}});
+
+  /* 2. Job title match */
+  const roleToks=tokens(role).filter(w=>!STOP.has(w));
+  const titleHit=roleToks.length?roleToks.filter(w=>new RegExp("\\b"+escapeRx(w)+"\\b").test(rt)).length/roleToks.length:0;
+  const exactTitle=role&&rt.includes(role.toLowerCase());
+  const titlePct=exactTitle?100:Math.round(titleHit*100);
+  cats.push({key:'title',title:'Job-title alignment',pct:titlePct,
+    why:`Enterprise ATS heavily weight whether your most recent title matches the role. ${exactTitle?'The exact title appears in your resume.':`Only ${titlePct}% of the title words "${role||'(none entered)'}" appear.`}`,
+    fix:exactTitle?`Good — keep the title visible near the top.`:`Add the target title "${role}" to your professional summary or current role (e.g. "Software Engineer (${role})"), as long as it honestly reflects your work.`});
+
+  /* 3. Years of experience */
+  const need=reqYears(jd),got=resumeYears(rt);
+  let yrsPct=100,yWhy,yFix;
+  if(need===null){yrsPct=80;yWhy=`The JD doesn't state a specific years-of-experience requirement. Detected ~<b>${got}</b> years in your resume.`;yFix=`Make total experience easy to spot — a "X+ years of …" line in your summary helps both the parser and recruiter.`;}
+  else{
+    const min=need.min,max=need.max;
+    const reqTxt=max?`${min}–${max} years`:`${min}+ years`;
+    if(got>=min){
+      yrsPct=100;
+      const note=(max&&got>max)?` You're above the stated band, which still qualifies.`:(max?` That falls within the ${min}–${max} band.`:``);
+      yWhy=`The role asks for <b>${reqTxt}</b>. The ATS detected about <b>${got}</b> years — you meet the requirement.${note}`;
+      yFix=`Good. State it explicitly ("${got}+ years of …") near the top so the screen registers it clearly.`;
+    } else if(got>=min-1){
+      yrsPct=70;
+      yWhy=`The role asks for <b>${reqTxt}</b>. The ATS detected about <b>${got}</b> years — just under the ${min}-year minimum.`;
+      yFix=`You're close to the minimum. Make your true total clearly visible and emphasise the depth of relevant projects. Don't fabricate dates.`;
+    } else if(got>=min*0.6){
+      yrsPct=45;
+      yWhy=`The role asks for <b>${reqTxt}</b>. The ATS detected about <b>${got}</b> years — below the ${min}-year minimum.`;
+      yFix=`You're under the bar. Lead with your most relevant and senior work; consider roles closer to your experience level. Don't fabricate dates.`;
+    } else {
+      yrsPct=20;
+      yWhy=`The role asks for <b>${reqTxt}</b>. The ATS detected only about <b>${got}</b> years — well below the ${min}-year minimum.`;
+      yFix=`This role likely targets more experience than your resume shows. Ensure all your experience is clearly dated, or target roles matching your level.`;
+    }
+  }
+  cats.push({key:'years',title:'Years of experience',pct:yrsPct,why:yWhy,fix:yFix});
+
+  /* 4. Education */
+  const jdNeedsDeg=jdDegree(jd),hasDeg=resumeDegree(rt);
+  const eduPct=!jdNeedsDeg?90:(hasDeg?100:25);
+  cats.push({key:'education',title:'Education & qualifications',pct:eduPct,
+    why:!jdNeedsDeg?`No specific degree requirement detected in the JD. Your resume ${hasDeg?'lists education — good.':'has no clearly detected education section.'}`:`The JD references a degree/qualification. Your resume ${hasDeg?'contains recognizable education keywords — good.':'has no detectable degree — many ATS auto-screen this out.'}`,
+    fix:hasDeg?`Keep an "Education" heading with degree, institution and year in plain text.`:`Add an Education section with your degree spelled out (e.g. "Bachelor of Technology, Computer Science"). Spell it out — parsers miss "BTech" buried in a header.`});
+
+  /* 5. Contact info */
+  const em=hasEmail(rt),ph=hasPhone(raw),li=hasLinkedIn(rt);
+  const cParts=[em,ph,li].filter(Boolean).length;const contactPct=Math.round(cParts/3*100);
+  cats.push({key:'contact',title:'Contact information & parseability',pct:contactPct,
+    why:`The parser needs machine-readable contact details. Detected — Email: ${em?'✓':'✗'} · Phone: ${ph?'✓':'✗'} · LinkedIn: ${li?'✓':'✗'}.`,
+    fix:cParts===3?`All present. Keep them as plain text in the body, never inside a header/footer or image (those are frequently dropped).`:`Add the missing items as plain text at the top of the document body. If they're in a header/footer or graphic, move them into the main text — many ATS ignore headers/footers entirely.`});
+
+  /* 6. Section structure */
+  const foundSecs=SECTIONS.filter(([,re])=>re.test(rt)).map(([n])=>n);
+  const missSecs=SECTIONS.filter(([,re])=>!re.test(rt)).map(([n])=>n);
+  const secPct=Math.round(foundSecs.length/SECTIONS.length*100);
+  cats.push({key:'sections',title:'Standard section headings',pct:secPct,
+    why:`ATS split resumes by recognizable headings. Found: <b>${foundSecs.join(', ')||'none'}</b>.${missSecs.length?` Missing/undetected: <b>${missSecs.join(', ')}</b>.`:''}`,
+    fix:missSecs.length?`Use conventional, single-word headings: Summary, Experience, Skills, Education. Creative headings ("Where I've Made an Impact") confuse the parser.`:`Strong structure — standard headings detected.`});
+
+  /* 7. Quantified impact */
+  const q=quantCount(rt);const impactPct=q>=8?100:q>=5?80:q>=3?55:q>=1?35:10;
+  cats.push({key:'impact',title:'Quantified impact / metrics',pct:impactPct,
+    why:`Detected <b>${q}</b> quantified achievement(s) (numbers, %, $, scale). Modern ATS and recruiters rank measurable impact higher than duty descriptions.`,
+    fix:q>=8?`Great use of metrics.`:`Convert duties into achievements with numbers: "Reduced build time by 40%", "Managed $2M budget", "Served 50k+ users". Aim for a metric in most bullets.`});
+
+  /* 8. Action verbs */
+  const v=verbCount(rt);const verbPct=v>=10?100:v>=6?80:v>=3?55:25;
+  cats.push({key:'verbs',title:'Strong action verbs',pct:verbPct,
+    why:`Detected <b>${v}</b> distinct strong action verbs (led, built, optimized…). Weak openers ("responsible for", "worked on") read as low-ownership.`,
+    fix:v>=10?`Good verb variety.`:`Start bullets with strong verbs: Led, Built, Designed, Optimized, Delivered, Automated. Avoid repeating the same verb.`});
+
+  /* 9. Parseability / length */
+  const wc=raw.split(/\s+/).length;
+  const weird=(raw.match(/[•▪◦‣⁃→★☆■□▶]/g)||[]).length;
+  let parsePct=100,pWhy,pFix;
+  if(wc<150){parsePct=35;pWhy=`Only <b>${wc}</b> words extracted — unusually short. This often means content is locked in images, tables, or text boxes the parser can't read.`;pFix=`Export as a text-based PDF or DOCX (not a scan/image). Use a single-column layout with no text boxes, so all content is extractable.`;}
+  else if(wc>1200){parsePct=70;pWhy=`<b>${wc}</b> words — quite long. Very long resumes dilute keyword density and tire recruiters.`;pFix=`Trim to the most relevant 1–2 pages; lead with achievements that match this JD.`;}
+  else{parsePct=95;pWhy=`<b>${wc}</b> words extracted cleanly — good machine-readability.`;pFix=`Keep a single-column, standard-font layout. Submit as PDF or DOCX, never as an image.`;}
+  cats.push({key:'parse',title:'Length & file parseability',pct:parsePct,why:pWhy,fix:pFix});
+
+  /* weighted overall */
+  let total=0,wsum=0;
+  cats.forEach(c=>{const w=W[c.key]||0;total+=c.pct*w;wsum+=w;});
+  const overall=Math.round(total/wsum);
+  render(name,role,profile,overall,cats);
+}
+
+/* ---------------- render ---------------- */
+function statusOf(p){return p>=75?'pass':p>=50?'warn':'fail';}
+function render(name,role,profile,overall,cats){
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('modify').classList.add('hidden');
+  document.getElementById('pct').textContent=overall+"%";
+  const ring=document.getElementById('ring');
+  ring.style.setProperty('--p',overall);
+  ring.style.setProperty('--rc',overall>=75?'var(--good)':overall>=50?'var(--mid)':'var(--bad)');
+
+  const v=document.getElementById('verdict'),vs=document.getElementById('verdictSub');
+  if(overall>=75){v.textContent="✅ Likely Shortlisted";v.className="verdict good";
+    vs.textContent="This resume would clear the automated screen and reach a recruiter for this role.";}
+  else if(overall>=50){v.textContent="🟡 Borderline — At Risk";v.className="verdict mid";
+    vs.textContent="Partial match. It may pass on a generous setting but is likely to be filtered out by stricter screens. Fix the red rows below.";}
+  else{v.textContent="❌ Likely Rejected by ATS";v.className="verdict bad";
+    vs.textContent="This resume would most likely be auto-filtered before a human sees it. The failing checks below explain why.";}
+
+  document.getElementById('tagName').textContent="👤 "+(name||"Candidate");
+  document.getElementById('tagRole').textContent="💼 "+(role||"Role");
+  document.getElementById('tagAts').textContent="🏢 "+document.getElementById('ats').selectedOptions[0].text;
+
+  const passN=cats.filter(c=>statusOf(c.pct)==='pass').length,
+        warnN=cats.filter(c=>statusOf(c.pct)==='warn').length,
+        failN=cats.filter(c=>statusOf(c.pct)==='fail').length;
+  document.getElementById('summarybar').innerHTML=
+    `<span class="pill pass">${passN} passing</span><span class="pill warn">${warnN} need work</span><span class="pill fail">${failN} failing</span>`;
+
+  const c=document.getElementById('cats');c.innerHTML="";
+  cats.forEach((cat,i)=>{
+    const st=statusOf(cat.pct);
+    let chipsHtml="";
+    if(cat.chips){
+      if(cat.chips.hit&&cat.chips.hit.length)chipsHtml+=`<div class="muted" style="margin-top:10px">Matched (${cat.chips.hit.length}):</div><div class="chips">${cat.chips.hit.map(x=>`<span class="chip hit">${x}</span>`).join('')}</div>`;
+      if(cat.chips.miss&&cat.chips.miss.length)chipsHtml+=`<div class="muted" style="margin-top:10px">Missing (${cat.chips.miss.length}):</div><div class="chips">${cat.chips.miss.map(x=>`<span class="chip miss">${x}</span>`).join('')}</div>`;
+    }
+    c.insertAdjacentHTML('beforeend',
+      `<div class="cat${st==='fail'?' open':''}">
+        <div class="cat-head" onclick="this.parentNode.classList.toggle('open')">
+          <span class="dot ${st}"></span>
+          <span class="cat-title">${cat.title}</span>
+          <span class="cat-score">${cat.pct}%</span>
+          <span class="cat-arrow">▶</span>
+        </div>
+        <div class="cat-body">
+          <p class="why">${cat.why}</p>
+          ${chipsHtml}
+          <div class="fix"><b>What to do →</b> ${cat.fix}</div>
+        </div>
+      </div>`);
+  });
+
+  document.getElementById('modBtn').onclick=()=>fixPlan(cats,overall);
+  window.scrollTo({top:document.getElementById('results').offsetTop-10,behavior:'smooth'});
+}
+
+/* ---------------- prioritized fix plan ---------------- */
+function fixPlan(cats,overall){
+  const m=document.getElementById('modify');m.classList.remove('hidden');
+  document.getElementById('modIntro').textContent=
+    `Ranked by impact on your ATS score. Tackle the red items first — each is a likely reason your resume is filtered out.`;
+  const ranked=[...cats].sort((a,b)=>a.pct-b.pct);
+  const body=document.getElementById('modBody');body.innerHTML="";
+  let n=1;
+  ranked.forEach(c=>{
+    const st=statusOf(c.pct);if(st==='pass')return;
+    body.insertAdjacentHTML('beforeend',
+      `<div class="fix" style="margin-top:12px;border-left-color:${st==='fail'?'var(--bad)':'var(--mid)'}">
+        <b>${n++}. ${c.title} — ${c.pct}%</b><br>${stripTags(c.why)}<br><b style="color:var(--accent2)">Fix:</b> ${c.fix}</div>`);
+    if(c.chips&&c.chips.miss&&c.chips.miss.length){
+      body.insertAdjacentHTML('beforeend',`<div class="chips" style="margin-top:6px">${c.chips.miss.slice(0,20).map(x=>`<span class="chip miss">${x}</span>`).join('')}</div>`);
+    }
+  });
+  if(n===1)body.innerHTML=`<div class="fix">🎉 Every check passed. This resume is well-optimized for this role — keep the keyword phrasing exact and submit as PDF/DOCX.</div>`;
+  body.insertAdjacentHTML('beforeend',`<div class="fix" style="margin-top:14px"><b style="color:var(--accent2)">Golden rules for any MNC ATS:</b> single-column layout · standard headings · plain-text contact info (not in header/footer) · exact keyword phrasing from the JD · quantified bullets · no tables/images/text-boxes · submit as text-based PDF or DOCX.</div>`);
+  m.scrollIntoView({behavior:'smooth'});
+}
+function stripTags(s){return s.replace(/<[^>]+>/g,'');}
+function val(id){return document.getElementById(id).value.trim();}
+</script>
+</body>
+</html>
